@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "name": "Spider-Man",
+    "description": "Friendly neighborhood superhero with spider powers and web-slinging abilities",
+    "skills": [
+      "Wall-crawling",
+      "Spider-sense",
+      "Super strength",
+      "Web-shooting"
+    ],
+    "avatarUrl": "https://avatarfiles.alphacoders.com/345/345851.jpg"
+  },
+  {
+    "id": 2,
+    "name": "Iron Man",
+    "description": "Genius billionaire inventor with a high-tech armored suit",
+    "skills": [
+      "Genius intellect",
+      "Engineering",
+      "Flight",
+      "Repulsor beams"
+    ],
+    "avatarUrl": "https://avatarfiles.alphacoders.com/207/thumb-1920-207641.jpg"
+  },
+  {
+    "id": 3,
+    "name": "Batman",
+    "description": "Dark knight detective of Gotham City with unmatched fighting skills",
+    "skills": [
+      "Detective work",
+      "Martial arts",
+      "Gadgets",
+      "Stealth"
+    ],
+    "avatarUrl": "https://avatarfiles.alphacoders.com/376/thumb-1920-376814.png"
+  },
+  {
+    "id": 4,
+    "name": "Donald Duck",
+    "description": "Hot-tempered duck with a distinctive voice and sailor outfit",
+    "skills": [
+      "Sailing",
+      "Quick temper",
+      "Determination",
+      "Comedy"
+    ],
+    "avatarUrl": "https://images4.alphacoders.com/134/thumb-1920-1343304.png"
+  },
+  {
+    "id": 5,
+    "name": "Mickey Mouse",
+    "description": "Cheerful and optimistic mouse, leader of the Disney gang",
+    "skills": [
+      "Leadership",
+      "Problem-solving",
+      "Positivity",
+      "Friendship"
+    ],
+    "avatarUrl": "https://avatarfiles.alphacoders.com/374/thumb-1920-374864.png"
+  },
+  {
+    "id": 6,
+    "name": "Wolverine",
+    "description": "Mutant with adamantium claws and healing factor",
+    "skills": [
+      "Healing factor",
+      "Adamantium claws",
+      "Combat expert",
+      "Enhanced senses"
+    ],
+    "avatarUrl": "https://picfiles.alphacoders.com/352/thumb-1920-352850.jpg"
+  }
+]
