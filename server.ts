@@ -1,9 +1,9 @@
-import express from "express";
-import FileDB from "./services/file_db";
-import rateLimiter from "./middlewares/rate_limiter";
-import swaggerDocs from "./swagger";
+import express from 'express';
+import FileDB from './services/file_db';
+import rateLimiter from './middlewares/rate_limiter';
+import swaggerDocs from './swagger';
 
-interface Character {
+interface ICharacter {
   id: number;
   name: string;
   description: string;
@@ -13,9 +13,11 @@ interface Character {
 
 const app = express();
 const PORT = 3005;
-const db = new FileDB("./data");
+const db = new FileDB('./data');
 
-app.use(rateLimiter({ windowMs: 60, maxRequests: 60 }));
+app.use(rateLimiter({
+  windowMs: 60, maxRequests: 60,
+}));
 app.use(express.json());
 
 /**
@@ -54,8 +56,9 @@ app.use(express.json());
  *                     type: string
  *                     example: ""
  */
-app.get("/characters", async (_req, res) => {
-  const characters = (await db.read<Character[]>("characters")) || [];
+app.get('/characters', async (_req, res) => {
+  const characters = (await db.read<ICharacter[]>('characters')) || [];
+
   res.status(200).json(characters);
 });
 
@@ -76,7 +79,7 @@ app.get("/characters", async (_req, res) => {
  *         description: The character ID
  *     responses:
  *       200:
- *         description: Character found
+ *         description: ICharacter found
  *         content:
  *           application/json:
  *             schema:
@@ -100,17 +103,18 @@ app.get("/characters", async (_req, res) => {
  *                   type: string
  *                   example: ""
  *       404:
- *         description: Character not found
+ *         description: ICharacter not found
  */
-app.get("/characters/:id", async (req, res) => {
-  const characters = (await db.read<Character[]>("characters")) || [];
-  const character = characters.find(c => c.id === parseInt(req.params.id));
-  
+app.get('/characters/:id', async (req, res) => {
+  const characters = (await db.read<ICharacter[]>('characters')) || [];
+  const character = characters.find((c) => c.id === parseInt(req.params.id));
+
   if (!character) {
-    res.status(404).json({ message: "Character not found" });
+    res.status(404).json({ message: 'ICharacter not found' });
+
     return;
   }
-  
+
   res.status(200).json(character);
 });
 
@@ -149,7 +153,7 @@ app.get("/characters/:id", async (req, res) => {
  *                 example: ""
  *     responses:
  *       201:
- *         description: Character created successfully
+ *         description: ICharacter created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -168,26 +172,24 @@ app.get("/characters/:id", async (req, res) => {
  *                 avatarUrl:
  *                   type: string
  */
-app.post("/characters", async (req, res) => {
+app.post('/characters', async (req, res) => {
   // Validate required fields
   if (!req.body.name || !req.body.description || !req.body.skills) {
-    return res.status(400).json({ 
-      error: "Missing required fields",
-      required: ["name", "description", "skills"]
+    return res.status(400).json({
+      error: 'Missing required fields',
+      required: ['name', 'description', 'skills'],
     });
   }
 
   // Validate skills is an array
   if (!Array.isArray(req.body.skills)) {
-    return res.status(400).json({ 
-      error: "skills must be an array"
-    });
+    return res.status(400).json({ error: 'skills must be an array' });
   }
 
-  const characters = (await db.read<Character[]>("characters")) || [];
-  const maxId = characters.length > 0 ? Math.max(...characters.map(c => c.id)) : 0;
+  const characters = (await db.read<ICharacter[]>('characters')) || [];
+  const maxId = characters.length > 0 ? Math.max(...characters.map((c) => c.id)) : 0;
 
-  const character: Character = {
+  const character: ICharacter = {
     id: maxId + 1,
     name: req.body.name,
     description: req.body.description,
@@ -195,7 +197,7 @@ app.post("/characters", async (req, res) => {
     avatarUrl: req.body.avatarUrl,
   };
 
-  await db.push("characters", character);
+  await db.push('characters', character);
   res.status(201).json(character);
 });
 
@@ -213,7 +215,7 @@ app.post("/characters", async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
- *         description: Character ID
+ *         description: ICharacter ID
  *     requestBody:
  *       required: true
  *       content:
@@ -233,7 +235,7 @@ app.post("/characters", async (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Character updated successfully
+ *         description: ICharacter updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -252,7 +254,7 @@ app.post("/characters", async (req, res) => {
  *                 avatarUrl:
  *                   type: string
  *       404:
- *         description: Character not found
+ *         description: ICharacter not found
  *         content:
  *           application/json:
  *             schema:
@@ -260,19 +262,19 @@ app.post("/characters", async (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
- *                   example: Character not found
+ *                   example: ICharacter not found
  */
-app.put("/characters/:id", async (req, res) => {
+app.put('/characters/:id', async (req, res) => {
   const id = Number(req.params.id);
 
-  const updated = await db.update<Character>(
-    "characters",
+  const updated = await db.update<ICharacter>(
+    'characters',
     (c) => c.id === id,
-    req.body
+    req.body,
   );
 
   if (!updated) {
-    return res.status(404).json({ error: "Character not found" });
+    return res.status(404).json({ error: 'ICharacter not found' });
   }
 
   res.status(200).json(updated);
@@ -292,12 +294,12 @@ app.put("/characters/:id", async (req, res) => {
  *         required: true
  *         schema:
  *           type: integer
- *         description: Character ID
+ *         description: ICharacter ID
  *     responses:
  *       204:
- *         description: Character deleted successfully
+ *         description: ICharacter deleted successfully
  *       404:
- *         description: Character not found
+ *         description: ICharacter not found
  *         content:
  *           application/json:
  *             schema:
@@ -305,18 +307,18 @@ app.put("/characters/:id", async (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
- *                   example: Character not found
+ *                   example: ICharacter not found
  */
-app.delete("/characters/:id", async (req, res) => {
+app.delete('/characters/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const characters = (await db.read<Character[]>("characters")) || [];
+  const characters = (await db.read<ICharacter[]>('characters')) || [];
   const characterExists = characters.find((c) => c.id === id);
-  
+
   if (!characterExists) {
-    return res.status(404).json({ error: "Character not found" });
+    return res.status(404).json({ error: 'ICharacter not found' });
   }
-  
-  await db.delete<Character>("characters", (c) => c.id === id);
+
+  await db.delete<ICharacter>('characters', (c) => c.id === id);
   res.status(204).send();
 });
 

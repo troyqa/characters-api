@@ -1,6 +1,6 @@
-import { Express } from "express-serve-static-core";
-import swaggerJSDoc from "swagger-jsdoc";
-import swagger from "swagger-ui-express";
+import { Express } from 'express-serve-static-core';
+import swaggerJSDoc from 'swagger-jsdoc';
+import swagger from 'swagger-ui-express';
 
 const options = {
   definition: {
