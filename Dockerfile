@@ -22,7 +22,6 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/data ./data
 COPY --from=builder /app/*.ts ./
 
 EXPOSE 3005

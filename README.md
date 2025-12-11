@@ -25,26 +25,57 @@ npm install
 
 ### Development Mode
 
+#### Local Development
 ```bash
 npm run dev
 ```
 
 The server will start on `http://localhost:3005` with hot-reloading enabled.
 
+#### Docker Development
+```bash
+make up-dev
+```
+
+To stop the development container:
+```bash
+make down-dev
+```
+
 ### Production Mode
 
+#### Local Production
 ```bash
 npm run build
 npm start
 ```
 
-### Docker
-
-Build and run with Docker:
-
+#### Docker Production
 ```bash
-docker build -t characters-api .
-docker run -p 3005:3005 characters-api
+make up-prod
+```
+
+To stop the production container:
+```bash
+make down-prod
+```
+
+### Docker Compose Profiles
+
+The application uses Docker Compose profiles for different environments:
+
+- **Development Profile** (`dev`): Runs with hot-reload, mounts source code as volumes
+- **Production Profile** (`prod`): Runs optimized build with multi-stage Dockerfile, includes restart policy
+
+Manual Docker Compose commands (if not using Makefile):
+```bash
+# Development
+docker compose --profile dev up -d --build
+docker compose --profile dev down -v
+
+# Production
+docker compose --profile prod up -d --build
+docker compose --profile prod down -v
 ```
 
 ## API Documentation
