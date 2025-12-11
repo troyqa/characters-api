@@ -1,10 +1,12 @@
 import express from 'express';
-import FileDB from './services/file_db';
+// import FirebaseDB from './services/firebase_db';
+import admin from 'firebase-admin';
 import rateLimiter from './middlewares/rate_limiter';
 import swaggerDocs from './swagger';
+import { db } from './firebase';
 
 interface ICharacter {
-  id: number;
+  id?: string;
   name: string;
   description: string;
   skills: string[];
@@ -13,7 +15,6 @@ interface ICharacter {
 
 const app = express();
 const PORT = 3005;
-const db = new FileDB('./data');
 
 app.use(rateLimiter({
   windowMs: 60, maxRequests: 60,
@@ -39,7 +40,7 @@ app.use(express.json());
  *                 type: object
  *                 properties:
  *                   id:
- *                     type: integer
+ *                     type: string
  *                     example: 1
  *                   name:
  *                     type: string
@@ -57,7 +58,12 @@ app.use(express.json());
  *                     example: ""
  */
 app.get('/characters', async (_req, res) => {
-  const characters = (await db.read<ICharacter[]>('characters')) || [];
+  const charactersSnapshot = await db.collection('characters').get();
+
+  const characters = charactersSnapshot.docs.map((character) => ({
+    id: character.id,
+    ...character.data(),
+  }));
 
   res.status(200).json(characters);
 });
@@ -75,7 +81,7 @@ app.get('/characters', async (_req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: The character ID
  *     responses:
  *       200:
@@ -86,7 +92,7 @@ app.get('/characters', async (_req, res) => {
  *               type: object
  *               properties:
  *                 id:
- *                   type: integer
+ *                   type: string
  *                   example: 1
  *                 name:
  *                   type: string
@@ -106,16 +112,17 @@ app.get('/characters', async (_req, res) => {
  *         description: ICharacter not found
  */
 app.get('/characters/:id', async (req, res) => {
-  const characters = (await db.read<ICharacter[]>('characters')) || [];
-  const character = characters.find((c) => c.id === parseInt(req.params.id));
+  const character = await db.collection('characters').doc(req.params.id).get();
 
-  if (!character) {
-    res.status(404).json({ message: 'ICharacter not found' });
+  if (!character.exists) {
+    res.status(404).json({ message: 'Character not found' });
 
     return;
   }
 
-  res.status(200).json(character);
+  res.status(200).json({
+    id: character.id, ...character.data(),
+  });
 });
 
 /**
@@ -160,7 +167,7 @@ app.get('/characters/:id', async (req, res) => {
  *               type: object
  *               properties:
  *                 id:
- *                   type: integer
+ *                   type: string
  *                 name:
  *                   type: string
  *                 description:
@@ -173,32 +180,53 @@ app.get('/characters/:id', async (req, res) => {
  *                   type: string
  */
 app.post('/characters', async (req, res) => {
-  // Validate required fields
-  if (!req.body.name || !req.body.description || !req.body.skills) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      required: ['name', 'description', 'skills'],
+  try {
+    const {
+      name, description, skills, avatarUrl,
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !description || !skills) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['name', 'description', 'skills'],
+      });
+    }
+
+    // Validate skills is an array
+    if (!Array.isArray(skills)) {
+      return res.status(400).json({ error: 'skills must be an array' });
+    }
+
+    const character: ICharacter = {
+      name,
+      description,
+      skills,
+      avatarUrl,
+    };
+
+    // Create doc
+    const docRef = await db.collection('characters').add({
+      ...character,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Fetch created doc
+    const snap = await docRef.get();
+    const data = snap.data();
+
+    // Convert timestamps
+    const converted = {
+      id: docRef.id,
+      ...data,
+      createdAt: data?.createdAt.toDate().toISOString(),
+    };
+
+    res.status(201).json(converted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  // Validate skills is an array
-  if (!Array.isArray(req.body.skills)) {
-    return res.status(400).json({ error: 'skills must be an array' });
-  }
-
-  const characters = (await db.read<ICharacter[]>('characters')) || [];
-  const maxId = characters.length > 0 ? Math.max(...characters.map((c) => c.id)) : 0;
-
-  const character: ICharacter = {
-    id: maxId + 1,
-    name: req.body.name,
-    description: req.body.description,
-    skills: req.body.skills,
-    avatarUrl: req.body.avatarUrl,
-  };
-
-  await db.push('characters', character);
-  res.status(201).json(character);
 });
 
 /**
@@ -214,7 +242,7 @@ app.post('/characters', async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ICharacter ID
  *     requestBody:
  *       required: true
@@ -242,7 +270,7 @@ app.post('/characters', async (req, res) => {
  *               type: object
  *               properties:
  *                 id:
- *                   type: integer
+ *                   type: string
  *                 name:
  *                   type: string
  *                 description:
@@ -265,19 +293,39 @@ app.post('/characters', async (req, res) => {
  *                   example: ICharacter not found
  */
 app.put('/characters/:id', async (req, res) => {
-  const id = Number(req.params.id);
+  try {
+    const characterRef = db.collection('characters').doc(req.params.id);
+    const characterSnap = await characterRef.get();
 
-  const updated = await db.update<ICharacter>(
-    'characters',
-    (c) => c.id === id,
-    req.body,
-  );
+    if (!characterSnap.exists) {
+      return res.status(404).json({ error: 'Character not found' });
+    }
 
-  if (!updated) {
-    return res.status(404).json({ error: 'ICharacter not found' });
+    const forbidden = ['id', 'createdAt'];
+
+    for (const key of Object.keys(req.body)) {
+      if (forbidden.includes(key)) {
+        return res.status(400).json({ error: `Field "${key}" cannot be updated` });
+      }
+    }
+
+    const updateData = {
+      ...req.body,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await characterRef.update(updateData);
+
+    const updatedSnap = await characterRef.get();
+
+    return res.status(200).json({
+      id: updatedSnap.id,
+      ...updatedSnap.data(),
+    });
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  res.status(200).json(updated);
 });
 
 /**
@@ -293,7 +341,7 @@ app.put('/characters/:id', async (req, res) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ICharacter ID
  *     responses:
  *       204:
@@ -310,16 +358,29 @@ app.put('/characters/:id', async (req, res) => {
  *                   example: ICharacter not found
  */
 app.delete('/characters/:id', async (req, res) => {
-  const id = Number(req.params.id);
-  const characters = (await db.read<ICharacter[]>('characters')) || [];
-  const characterExists = characters.find((c) => c.id === id);
+  try {
+    const { id } = req.params;
 
-  if (!characterExists) {
-    return res.status(404).json({ error: 'ICharacter not found' });
+    const ref = db.collection('characters').doc(id);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Character not found' });
+    }
+
+    const data = snap.data();
+
+    await ref.delete();
+
+    res.status(200).json({
+      id,
+      deleted: true,
+      ...data,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  await db.delete<ICharacter>('characters', (c) => c.id === id);
-  res.status(204).send();
 });
 
 swaggerDocs(app);
